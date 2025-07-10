@@ -1,0 +1,63 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auto-price-analytics
+    restart: unless-stopped
+    environment:
+      - NEO4J_URI=bolt://neo4j-db:7687
+      - NEO4J_USER=neo4j
+    env_file:
+      - ./secrets/.env
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - app-network
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+  neo4j:
+    image: neo4j:5.15-community
+    container_name: neo4j-db
+    restart: unless-stopped
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/password_neo4j
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+      - NEO4J_server_memory_heap_initial__size=256m
+      - NEO4J_server_memory_heap_max__size=512m
+      - NEO4J_server_memory_pagecache_size=128m
+      - NEO4J_dbms_logs_debug_level=INFO
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+
+networks:
+  app-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

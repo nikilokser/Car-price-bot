@@ -1,0 +1,8 @@
+pandas
+numpy
+neo4j
+python-dotenv
+pyTelegramBotAPI
+beautifulsoup4
+requests
+catboost
